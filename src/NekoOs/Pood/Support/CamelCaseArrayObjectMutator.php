@@ -63,8 +63,9 @@ class CamelCaseArrayObjectMutator extends ArrayObject
         }
 
         parent::__construct($input, $flags, $iterator_class);
+        $this->values = get_object_vars($this);
 
-        $this->behavior(static::$defaultFlags ?? ~static::PREFER_ORIGINAL_KEYS | static::DEBUG_ON_UNDEFINED, true);
+        $this->behavior(static::getDefaultBehaviorFlags());
     }
 
     /**
@@ -74,10 +75,26 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     public static function defaultBehavior(int $flags, bool $restart = false)
     {
         if ($restart) {
-            static::$defaultFlags = $flags;
+            static::setDefaultBehaviorFlags($flags);
         } else {
             BitwiseFlag::set(static::$defaultFlags, $flags, true);
         }
+    }
+
+    /**
+     * @return int
+     */
+    protected static function getDefaultBehaviorFlags() : int
+    {
+        return self::$defaultFlags ?? ~static::PREFER_ORIGINAL_KEYS | static::DEBUG_ON_UNDEFINED;
+    }
+
+    /**
+     * @param int $flags
+     */
+    protected static function setDefaultBehaviorFlags(int $flags)
+    {
+        self::$defaultFlags = $flags;
     }
 
     /**
