@@ -77,7 +77,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
         if ($restart) {
             static::setDefaultBehaviorFlags($flags);
         } else {
-            BitwiseFlag::set(static::$defaultFlags, $flags, true);
+            BitwiseFlag::set(self::$defaultFlags, $flags, true);
         }
     }
 
@@ -86,7 +86,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      */
     protected static function getDefaultBehaviorFlags() : int
     {
-        return self::$defaultFlags ?? ~static::PREFER_ORIGINAL_KEYS | static::DEBUG_ON_UNDEFINED;
+        return self::$defaultFlags ?? ~self::PREFER_ORIGINAL_KEYS | self::DEBUG_ON_UNDEFINED;
     }
 
     /**
@@ -100,16 +100,14 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     /**
      * @param int  $flags
      *
-     * @param bool $restart
-     *
      * @return $this
      */
     public function behavior(int $flags)
     {
         $this->setBehaviorFlags($flags);
 
-        $this->debug = BitwiseFlag::match($this->flags, static::DEBUG_ON_UNDEFINED);
-        $this->mutate = !BitwiseFlag::match($this->flags, static::PREFER_ORIGINAL_KEYS);
+        $this->debug = BitwiseFlag::match($this->flags, self::DEBUG_ON_UNDEFINED);
+        $this->mutate = !BitwiseFlag::match($this->flags, self::PREFER_ORIGINAL_KEYS);
 
         return $this->rearrangeStorage();
     }
@@ -211,15 +209,15 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     /**
      * @param int $flags
      */
-    private function setBehaviorFlags(int $flags)
+    protected function setBehaviorFlags(int $flags)
     {
         $this->debug = false;
         $this->mutate = true;
         $response = 0;
 
         $behaviorFlags = [
-            static::DEBUG_ON_UNDEFINED,
-            static::PREFER_ORIGINAL_KEYS,
+            self::DEBUG_ON_UNDEFINED,
+            self::PREFER_ORIGINAL_KEYS,
         ];
 
         foreach ($behaviorFlags as $behaviorFlag) {
@@ -242,7 +240,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     /**
      * @return $this
      */
-    private function rearrangeStorage()
+    protected function rearrangeStorage()
     {
         $localStorage = $this->storage;
         $foreignStorage = parent::getArrayCopy();
@@ -265,7 +263,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      * @param int|string $index
      * @param mixed      $value
      */
-    private function addAlias($index, $value): void
+    protected function addAlias($index, $value): void
     {
         $key = camel_case($index);
 
@@ -280,7 +278,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      *
      * @return array
      */
-    private function getKeyAliases($index): array
+    protected function getKeyAliases($index): array
     {
         return $this->keys[camel_case($index)] ?? [];
     }
@@ -288,7 +286,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     /**
      * @param int|string $index
      */
-    private function removeAliases($index)
+    protected function removeAliases($index)
     {
         $key = camel_case($index);
         unset(
@@ -301,7 +299,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      * @param int|string $index
      * @param mixed      $value
      */
-    private function offset($index, $value)
+    protected function offset($index, $value)
     {
         $localKey = $key = camel_case($index);
         $foreignKey = $index;
