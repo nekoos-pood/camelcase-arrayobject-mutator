@@ -63,7 +63,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
         }
 
         parent::__construct($input, $flags, $iterator_class);
-        $this->values = get_object_vars($this);
+        $this->values = parent::getArrayCopy();
 
         $this->behavior(static::getDefaultBehaviorFlags());
     }
@@ -140,7 +140,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      */
     public function getStorage(): array
     {
-        return $this->storage;
+        return $this->mutate ? $this->storage : parent::getArrayCopy();
     }
 
     /**
@@ -192,7 +192,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
 
     public function counter()
     {
-        $array = array_filter(array_keys((array)$this), 'is_integer');
+        $array = array_filter(array_keys(parent::getArrayCopy()), 'is_integer');
         return empty($array) ? 0 : max($array) + 1;
     }
 
@@ -245,7 +245,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     private function rearrangeStorage()
     {
         $localStorage = $this->storage;
-        $foreignStorage = get_object_vars($this);
+        $foreignStorage = parent::getArrayCopy();
         $mutateStorage = $this->values;
 
         if (empty($mutateStorage)) {
