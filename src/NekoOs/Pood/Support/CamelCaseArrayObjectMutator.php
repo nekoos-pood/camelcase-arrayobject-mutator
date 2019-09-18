@@ -19,7 +19,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     /**
      * @var int
      */
-    private static $defaultFlags = null;
+    private static $defaultFlags = self::DEBUG_ON_UNDEFINED;
 
     /**
      * @var bool
@@ -74,11 +74,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      */
     public static function defaultBehavior(int $flags, bool $restart = false)
     {
-        if ($restart) {
-            static::setDefaultBehaviorFlags($flags);
-        } else {
-            BitwiseFlag::set(self::$defaultFlags, $flags, true);
-        }
+        static::setDefaultBehaviorFlags($flags);
     }
 
     /**
@@ -86,7 +82,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      */
     protected static function getDefaultBehaviorFlags() : int
     {
-        return self::$defaultFlags ?? ~self::PREFER_ORIGINAL_KEYS | self::DEBUG_ON_UNDEFINED;
+        return self::$defaultFlags;
     }
 
     /**
@@ -94,7 +90,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      */
     protected static function setDefaultBehaviorFlags(int $flags)
     {
-        self::$defaultFlags = $flags;
+        static::pushBehaviorFlags(self::$defaultFlags, $flags);
     }
 
     /**
@@ -211,30 +207,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      */
     protected function setBehaviorFlags(int $flags)
     {
-        $this->debug = false;
-        $this->mutate = true;
-        $response = 0;
-
-        $behaviorFlags = [
-            self::DEBUG_ON_UNDEFINED,
-            self::PREFER_ORIGINAL_KEYS,
-        ];
-
-        foreach ($behaviorFlags as $behaviorFlag) {
-            if (BitwiseFlag::match($flags, $behaviorFlag)) {
-                $response |= $behaviorFlag;
-                $this->debug = true;
-            } elseif (BitwiseFlag::match($flags, ~$behaviorFlag)) {
-                $response |= ~$behaviorFlag;
-            } elseif (BitwiseFlag::match($this->flags, $behaviorFlag)) {
-                $response |= $behaviorFlag;
-                $this->debug = true;
-            } elseif (BitwiseFlag::match($this->flags, ~$behaviorFlag)) {
-                $response |= ~$behaviorFlag;
-            }
-        }
-
-        $this->flags = $response;
+        static::pushBehaviorFlags($this->flags, $flags);
     }
 
     /**
@@ -310,5 +283,31 @@ class CamelCaseArrayObjectMutator extends ArrayObject
         $this->storage[$localKey] = $value;
         parent::offsetSet($foreignKey, $value);
         $this->values[$key] = $value;
+    }
+
+    /**
+     * @param int $target
+     * @param int $flags
+     */
+    protected static function pushBehaviorFlags(int &$target, int $flags)
+    {
+        $response = 0;
+
+        $behaviorFlags = [
+            self::DEBUG_ON_UNDEFINED,
+            self::PREFER_ORIGINAL_KEYS,
+        ];
+
+        foreach ($behaviorFlags as $behaviorFlag) {
+            if (BitwiseFlag::match($flags, $behaviorFlag)) {
+                $response |= $behaviorFlag;
+            } elseif (BitwiseFlag::match($flags, ~$behaviorFlag)) {
+                $response |= 0;
+            } elseif (BitwiseFlag::match($target, $behaviorFlag)) {
+                $response |= $behaviorFlag;
+            }
+        }
+
+        $target = $response;
     }
 }
