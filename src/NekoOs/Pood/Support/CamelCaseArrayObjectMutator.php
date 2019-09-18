@@ -19,7 +19,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     /**
      * @var int
      */
-    private static $defaultFlags = null;
+    private static $defaultFlags = self::DEBUG_ON_UNDEFINED;
 
     /**
      * @var bool
@@ -63,7 +63,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
         }
 
         parent::__construct($input, $flags, $iterator_class);
-        $this->values = get_object_vars($this);
+        $this->values = parent::getArrayCopy();
 
         $this->behavior(static::getDefaultBehaviorFlags());
     }
@@ -74,11 +74,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      */
     public static function defaultBehavior(int $flags, bool $restart = false)
     {
-        if ($restart) {
-            static::setDefaultBehaviorFlags($flags);
-        } else {
-            BitwiseFlag::set(static::$defaultFlags, $flags, true);
-        }
+        static::setDefaultBehaviorFlags($flags);
     }
 
     /**
@@ -86,7 +82,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      */
     protected static function getDefaultBehaviorFlags() : int
     {
-        return self::$defaultFlags ?? ~static::PREFER_ORIGINAL_KEYS | static::DEBUG_ON_UNDEFINED;
+        return self::$defaultFlags;
     }
 
     /**
@@ -94,13 +90,11 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      */
     protected static function setDefaultBehaviorFlags(int $flags)
     {
-        self::$defaultFlags = $flags;
+        static::pushBehaviorFlags(self::$defaultFlags, $flags);
     }
 
     /**
      * @param int  $flags
-     *
-     * @param bool $restart
      *
      * @return $this
      */
@@ -108,8 +102,8 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     {
         $this->setBehaviorFlags($flags);
 
-        $this->debug = BitwiseFlag::match($this->flags, static::DEBUG_ON_UNDEFINED);
-        $this->mutate = !BitwiseFlag::match($this->flags, static::PREFER_ORIGINAL_KEYS);
+        $this->debug = BitwiseFlag::match($this->flags, self::DEBUG_ON_UNDEFINED);
+        $this->mutate = !BitwiseFlag::match($this->flags, self::PREFER_ORIGINAL_KEYS);
 
         return $this->rearrangeStorage();
     }
@@ -140,7 +134,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      */
     public function getStorage(): array
     {
-        return $this->storage;
+        return $this->mutate ? $this->storage : parent::getArrayCopy();
     }
 
     /**
@@ -192,7 +186,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
 
     public function counter()
     {
-        $array = array_filter(array_keys((array)$this), 'is_integer');
+        $array = array_filter(array_keys(parent::getArrayCopy()), 'is_integer');
         return empty($array) ? 0 : max($array) + 1;
     }
 
@@ -211,41 +205,18 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     /**
      * @param int $flags
      */
-    private function setBehaviorFlags(int $flags)
+    protected function setBehaviorFlags(int $flags)
     {
-        $this->debug = false;
-        $this->mutate = true;
-        $response = 0;
-
-        $behaviorFlags = [
-            static::DEBUG_ON_UNDEFINED,
-            static::PREFER_ORIGINAL_KEYS,
-        ];
-
-        foreach ($behaviorFlags as $behaviorFlag) {
-            if (BitwiseFlag::match($flags, $behaviorFlag)) {
-                $response |= $behaviorFlag;
-                $this->debug = true;
-            } elseif (BitwiseFlag::match($flags, ~$behaviorFlag)) {
-                $response |= ~$behaviorFlag;
-            } elseif (BitwiseFlag::match($this->flags, $behaviorFlag)) {
-                $response |= $behaviorFlag;
-                $this->debug = true;
-            } elseif (BitwiseFlag::match($this->flags, ~$behaviorFlag)) {
-                $response |= ~$behaviorFlag;
-            }
-        }
-
-        $this->flags = $response;
+        static::pushBehaviorFlags($this->flags, $flags);
     }
 
     /**
      * @return $this
      */
-    private function rearrangeStorage()
+    protected function rearrangeStorage()
     {
         $localStorage = $this->storage;
-        $foreignStorage = get_object_vars($this);
+        $foreignStorage = parent::getArrayCopy();
         $mutateStorage = $this->values;
 
         if (empty($mutateStorage)) {
@@ -265,7 +236,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      * @param int|string $index
      * @param mixed      $value
      */
-    private function addAlias($index, $value): void
+    protected function addAlias($index, $value): void
     {
         $key = camel_case($index);
 
@@ -280,7 +251,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      *
      * @return array
      */
-    private function getKeyAliases($index): array
+    protected function getKeyAliases($index): array
     {
         return $this->keys[camel_case($index)] ?? [];
     }
@@ -288,7 +259,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     /**
      * @param int|string $index
      */
-    private function removeAliases($index)
+    protected function removeAliases($index)
     {
         $key = camel_case($index);
         unset(
@@ -301,7 +272,7 @@ class CamelCaseArrayObjectMutator extends ArrayObject
      * @param int|string $index
      * @param mixed      $value
      */
-    private function offset($index, $value)
+    protected function offset($index, $value)
     {
         $localKey = $key = camel_case($index);
         $foreignKey = $index;
@@ -312,5 +283,31 @@ class CamelCaseArrayObjectMutator extends ArrayObject
         $this->storage[$localKey] = $value;
         parent::offsetSet($foreignKey, $value);
         $this->values[$key] = $value;
+    }
+
+    /**
+     * @param int $target
+     * @param int $flags
+     */
+    protected static function pushBehaviorFlags(int &$target, int $flags)
+    {
+        $response = 0;
+
+        $behaviorFlags = [
+            self::DEBUG_ON_UNDEFINED,
+            self::PREFER_ORIGINAL_KEYS,
+        ];
+
+        foreach ($behaviorFlags as $behaviorFlag) {
+            if (BitwiseFlag::match($flags, $behaviorFlag)) {
+                $response |= $behaviorFlag;
+            } elseif (BitwiseFlag::match($flags, ~$behaviorFlag)) {
+                $response |= 0;
+            } elseif (BitwiseFlag::match($target, $behaviorFlag)) {
+                $response |= $behaviorFlag;
+            }
+        }
+
+        $target = $response;
     }
 }
