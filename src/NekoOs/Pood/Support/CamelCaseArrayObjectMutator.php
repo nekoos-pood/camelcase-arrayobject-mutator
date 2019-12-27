@@ -19,12 +19,12 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     /**
      * @var int
      */
-    private static $defaultFlags = self::DEBUG_ON_UNDEFINED;
+    protected static $defaultFlags = self::DEBUG_ON_UNDEFINED;
 
     /**
      * @var bool
      */
-    private $debug = true;
+    protected $debug = true;
 
     /**
      * @var int
@@ -34,22 +34,22 @@ class CamelCaseArrayObjectMutator extends ArrayObject
     /**
      * @var array
      */
-    private $storage = [];
+    protected $storage = [];
 
     /**
      * @var bool
      */
-    private $mutate = false;
+    protected $mutate = false;
 
     /**
      * @var array
      */
-    private $keys = [];
+    protected $keys = [];
 
     /**
      * @var array
      */
-    private $values = [];
+    protected $values = [];
 
     /**
      * @param array  $input
