@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Tests;
+namespace Tests\NekoOs\Pood\Support\CamelCaseArrayObjectMutator\Utils;
 
 
 use PHPUnit\Framework\Assert as PHPUnit;
