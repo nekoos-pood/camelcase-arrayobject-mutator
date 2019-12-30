@@ -3,7 +3,7 @@
 namespace Tests\NekoOs\Pood\Support\CamelCaseArrayObjectMutator;
 
 use NekoOs\Pood\Support\CamelCaseArrayObjectMutator;
-use Tests\TestCase;
+use Tests\NekoOs\Pood\Support\CamelCaseArrayObjectMutator\Utils\TestCase;
 
 class CamelCaseArrayObjectMutatorTest extends TestCase
 {
